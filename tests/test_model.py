@@ -1,51 +1,24 @@
 import os
-import sys
-import torch
 import pytest
+import torch
+import torch.nn.functional as F
 from torchvision import datasets, transforms
-import torch.nn.utils.prune as prune
-
-# Add the project root directory to Python path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_root)
-
 from model.network import SimpleCNN
+from train import train
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-def test_model_parameters():
-    model = SimpleCNN()
-    num_params = count_parameters(model)
-    assert num_params < 25000, f"Model has {num_params} parameters, should be less than 100000"
-    print("**********")
-    print(f"Model has {num_params} parameters")
-    print("**********")
-def test_input_output_shape():
-    model = SimpleCNN()
-    test_input = torch.randn(1, 1, 28, 28)
-    output = model(test_input)
-    assert output.shape == (1, 10), f"Output shape is {output.shape}, should be (1, 10)"
-
-def test_model_accuracy():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = SimpleCNN().to(device)
-    
-    # Load the latest model
-    import glob
-    model_files = glob.glob('models/*.pth')
-    latest_model = max(model_files, key=os.path.getctime)
-    model.load_state_dict(torch.load(latest_model))
-    
-    # Test data
-    transform = transforms.Compose([
+def calculate_accuracy(model, device='cpu'):
+    model.eval()
+    test_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
     ])
-    test_dataset = datasets.MNIST('data', train=False, download=True, transform=transform)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1000)
     
-    model.eval()
+    test_dataset = datasets.MNIST('data', train=False, download=True, transform=test_transform)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1000, shuffle=False)
+    
     correct = 0
     total = 0
     
@@ -58,7 +31,68 @@ def test_model_accuracy():
             correct += (predicted == target).sum().item()
     
     accuracy = 100 * correct / total
-    print("**********")
-    print(f"Model accuracy is {accuracy}%")
-    print("**********")
-    assert accuracy > 95, f"Model accuracy is {accuracy}%, should be > 95%" 
+    return accuracy
+
+def test_model_creation():
+    model = SimpleCNN()
+    assert isinstance(model, SimpleCNN)
+    
+def test_model_forward():
+    model = SimpleCNN()
+    x = torch.randn(1, 1, 28, 28)  # MNIST image size
+    output = model(x)
+    assert output.shape == (1, 10)  # 10 classes for MNIST
+
+def test_model_parameters():
+    model = SimpleCNN()
+    num_params = count_parameters(model)
+    print(f"Model has {num_params} parameters")
+    assert num_params < 25000, f"Model has {num_params} parameters, which exceeds the limit of 25000"
+
+def test_model_accuracy():
+    # Train the model
+    model_path = train()
+    
+    # Load the trained model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = SimpleCNN().to(device)
+    checkpoint = torch.load(model_path)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    
+    # Calculate accuracy
+    accuracy = calculate_accuracy(model, device)
+    print(f"Model accuracy: {accuracy:.2f}%")
+    assert accuracy > 95.0, f"Model accuracy {accuracy:.2f}% is below the required 95%"
+
+def test_model_training():
+    # Run training and get model path
+    model_path = train()
+    
+    # Check if model file was created
+    assert os.path.exists(model_path)
+    
+    # Load and verify the model
+    checkpoint = torch.load(model_path)
+    assert 'model_state_dict' in checkpoint
+    assert 'timestamp' in checkpoint
+    assert 'device' in checkpoint
+
+def get_latest_model():
+    if not os.path.exists('models'):
+        return None
+        
+    model_files = [f for f in os.listdir('models') if f.endswith('.pkl')]
+    if not model_files:
+        return None
+        
+    return max((os.path.join('models', f) for f in model_files), 
+              key=os.path.getctime)
+
+def test_latest_model():
+    latest_model = get_latest_model()
+    if latest_model is None:
+        pytest.skip("No model files found - run training first")
+    
+    # Load and verify the model
+    checkpoint = torch.load(latest_model)
+    assert 'model_state_dict' in checkpoint

@@ -45,9 +45,20 @@ def train():
     
     # Save model with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    device_type = "cuda" if torch.cuda.is_available() else "cpu"
+    
     if not os.path.exists('models'):
         os.makedirs('models')
-    torch.save(model.state_dict(), f'models/model_{timestamp}.pth')
+    
+    # Save with consistent .pkl extension and device info
+    model_path = f'models/model_{timestamp}_{device_type}.pkl'
+    torch.save({
+        'model_state_dict': model.state_dict(),
+        'timestamp': timestamp,
+        'device': device_type
+    }, model_path)
+    
+    return model_path  # Return the saved model path
     
 if __name__ == "__main__":
     train() 
