@@ -18,7 +18,9 @@ def test_model_parameters():
     model = SimpleCNN()
     num_params = count_parameters(model)
     assert num_params < 25000, f"Model has {num_params} parameters, should be less than 100000"
-
+    print("**********")
+    print(f"Model has {num_params} parameters")
+    print("**********")
 def test_input_output_shape():
     model = SimpleCNN()
     test_input = torch.randn(1, 1, 28, 28)
@@ -56,4 +58,7 @@ def test_model_accuracy():
             correct += (predicted == target).sum().item()
     
     accuracy = 100 * correct / total
+    print("**********")
+    print(f"Model accuracy is {accuracy}%")
+    print("**********")
     assert accuracy > 95, f"Model accuracy is {accuracy}%, should be > 95%" 
