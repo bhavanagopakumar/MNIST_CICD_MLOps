@@ -69,10 +69,10 @@ def test_model_accuracy():
     accuracy = calculate_accuracy(model, device)
     
     print("\n")
-    print("=" * 50)
+    print("=" * 51)
     print(f"Model accuracy: {accuracy:.2f}%")
-    print(f"Using model: {checkpoint['model_state_dict']}")
-    print("=" * 50)
+    #print(f"Using model: {checkpoint['model_state_dict']}")
+    print("=" * 51)
     print("\n")
     assert accuracy > 95.0, f"Model accuracy {accuracy:.2f}% is below the required 95%"
 
