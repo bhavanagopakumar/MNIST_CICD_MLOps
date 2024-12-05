@@ -46,8 +46,14 @@ def test_model_forward():
 def test_model_parameters():
     model = SimpleCNN()
     num_params = count_parameters(model)
+
+    print("\n")
+    print("=" * 50)
     print(f"Model has {num_params} parameters")
+    print("=" * 50)
+    print("\n")
     assert num_params < 25000, f"Model has {num_params} parameters, which exceeds the limit of 25000"
+
 
 def test_model_accuracy():
     # Train the model
@@ -61,7 +67,13 @@ def test_model_accuracy():
     
     # Calculate accuracy
     accuracy = calculate_accuracy(model, device)
+    
+    print("\n")
+    print("=" * 50)
     print(f"Model accuracy: {accuracy:.2f}%")
+    print(f"Using model: {checkpoint['model_state_dict']}")
+    print("=" * 50)
+    print("\n")
     assert accuracy > 95.0, f"Model accuracy {accuracy:.2f}% is below the required 95%"
 
 def test_model_training():
