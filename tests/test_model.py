@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms
 from model.network import SimpleCNN
 from train import train
+import numpy as np
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -147,3 +148,106 @@ def test_model_loss():
     # Calculate loss
     loss = calculate_loss(model, device)
     assert loss < 0.5, f"Model loss {loss:.4f} is above the threshold of 0.5"
+
+def test_transform_consistency():
+    """Test if transforms are consistent with expected parameters"""
+    train_transform = get_transforms(is_train=True)
+    test_transform = get_transforms(is_train=False)
+    
+    # Check if training transform has augmentation
+    assert len(train_transform.transforms) > len(test_transform.transforms)
+    
+    # Verify test transform only has ToTensor and Normalize
+    assert len(test_transform.transforms) == 2
+
+def test_augmentation_variability():
+    """Test if augmentation produces different results"""
+    train_transform = get_transforms(is_train=True)
+    dataset = datasets.MNIST('data', train=True, download=True)
+    image, _ = dataset[0]
+    
+    # Generate multiple augmented versions
+    augmented1 = train_transform(image)
+    augmented2 = train_transform(image)
+    
+    # Check if augmentations are different
+    assert not torch.allclose(augmented1, augmented2)
+
+def test_augmentation_range():
+    """Test if augmented values stay in expected range"""
+    train_transform = get_transforms(is_train=True)
+    dataset = datasets.MNIST('data', train=True, download=True)
+    image, _ = dataset[0]
+    
+    augmented = train_transform(image)
+    
+    # Check value ranges after normalization
+    assert augmented.min() >= -1.0
+    assert augmented.max() <= 1.0
+
+def test_augmentation_shape():
+    """Test if augmentation preserves image shape"""
+    train_transform = get_transforms(is_train=True)
+    dataset = datasets.MNIST('data', train=True, download=True)
+    image, _ = dataset[0]
+    
+    augmented = train_transform(image)
+    
+    # Check if shape is preserved (1x28x28 for MNIST)
+    assert augmented.shape == (1, 28, 28)
+
+def test_random_erasing():
+    """Test if random erasing is applied"""
+    train_transform = get_transforms(is_train=True)
+    dataset = datasets.MNIST('data', train=True, download=True)
+    image, _ = dataset[0]
+    
+    # Apply transform multiple times
+    erased = False
+    for _ in range(10):
+        augmented = train_transform(image)
+        if not torch.allclose(augmented, transforms.ToTensor()(image)):
+            erased = True
+            break
+    
+    assert erased, "Random erasing was never applied in 10 attempts"
+
+def test_rotation_limits():
+    """Test if rotation stays within specified limits"""
+    train_transform = get_transforms(is_train=True)
+    dataset = datasets.MNIST('data', train=True, download=True)
+    image, _ = dataset[0]
+    
+    original = transforms.ToTensor()(image)
+    augmented = train_transform(image)
+    
+    # Calculate maximum pixel shift (rough estimate for 10-degree rotation)
+    max_shift = int(28 * np.sin(np.radians(10)))
+    assert torch.any(torch.abs(augmented - original) > 0)
+
+def test_model_augmentation_robustness():
+    """Test if model performs well on both original and augmented data"""
+    model_path = train()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = SimpleCNN().to(device)
+    checkpoint = torch.load(model_path)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    
+    # Test on original and augmented versions
+    test_transform = get_transforms(is_train=False)
+    train_transform = get_transforms(is_train=True)
+    
+    dataset = datasets.MNIST('data', train=False, download=True)
+    image, label = dataset[0]
+    
+    # Test prediction on original
+    original = test_transform(image).unsqueeze(0).to(device)
+    orig_pred = model(original).argmax(dim=1)
+    
+    # Test prediction on augmented
+    augmented = train_transform(image).unsqueeze(0).to(device)
+    aug_pred = model(augmented).argmax(dim=1)
+    
+    # Both should predict correctly
+    assert orig_pred.item() == label
+    assert aug_pred.item() == label

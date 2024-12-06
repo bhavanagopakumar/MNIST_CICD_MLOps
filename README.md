@@ -1,4 +1,6 @@
-# MNIST Digit Classification with CI/CD Integration
+# MNIST CNN Training Pipeline
+
+![Model Accuracy](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/badges/accuracy.json)
 
 This project implements a complete Machine Learning pipeline for training a Convolutional Neural Network (CNN) for MNIST digit classification with automated CI/CD pipeline integration. What makes this project special is its focus on automated testing and continuous integration. 
 

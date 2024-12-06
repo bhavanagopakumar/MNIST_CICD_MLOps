@@ -37,8 +37,36 @@ jobs:
       run: |
         python train.py
         
+    - name: Update Accuracy Badge
+      run: |
+        # Extract accuracy from the latest model file
+        ACCURACY=$(python -c "
+        import glob
+        import torch
+        latest_model = max(glob.glob('models/*.pkl'), key=lambda x: torch.load(x)['timestamp'])
+        accuracy = torch.load(latest_model)['accuracy']
+        print(f'{accuracy:.2f}')
+        ")
+        
+        # Create badge JSON file
+        echo "{
+          \"schemaVersion\": 1,
+          \"label\": \"accuracy\",
+          \"message\": \"${ACCURACY}%\",
+          \"color\": \"blue\"
+        }" > accuracy.json
+        
+    - name: Deploy Badge
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        folder: .
+        branch: badges
+        target-folder: .
+        clean: false
+        files: accuracy.json
+
     - name: Upload trained model
       uses: actions/upload-artifact@v3
       with:
         name: trained-model
-        path: models/*.pkl 
+        path: models/*.pkl
