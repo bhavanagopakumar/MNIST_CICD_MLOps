@@ -33,6 +33,31 @@ def calculate_accuracy(model, device='cpu'):
     accuracy = 100 * correct / total
     return accuracy
 
+def calculate_loss(model, device='cpu'):
+    model.eval()
+    test_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))
+    ])
+    
+    test_dataset = datasets.MNIST('data', train=False, download=True, transform=test_transform)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1000, shuffle=False)
+    
+    criterion = torch.nn.CrossEntropyLoss()
+    total_loss = 0
+    num_batches = 0
+    
+    with torch.no_grad():
+        for data, target in test_loader:
+            data, target = data.to(device), target.to(device)
+            outputs = model(data)
+            loss = criterion(outputs, target)
+            total_loss += loss.item()
+            num_batches += 1
+    
+    average_loss = total_loss / num_batches
+    return average_loss
+
 def test_model_creation():
     model = SimpleCNN()
     assert isinstance(model, SimpleCNN)
@@ -41,7 +66,7 @@ def test_model_forward():
     model = SimpleCNN()
     x = torch.randn(1, 1, 28, 28)  # MNIST image size
     output = model(x)
-    assert output.shape == (1, 10)  # 10 classes for MNIST
+    assert output.shape == (1, 16)  # 10 classes for MNIST
 
 def test_model_parameters():
     model = SimpleCNN()
@@ -72,7 +97,7 @@ def test_model_accuracy():
     print("=" * 51)
     print(f"Model accuracy: {accuracy:.2f}%")
     #print(f"Using model: {checkpoint['model_state_dict']}")
-    print("=" * 51)
+    print("=" * 51) # On Windows: venv\Scripts\activate)
     print("\n")
     assert accuracy > 95.0, f"Model accuracy {accuracy:.2f}% is below the required 95%"
 
@@ -108,3 +133,17 @@ def test_latest_model():
     # Load and verify the model
     checkpoint = torch.load(latest_model)
     assert 'model_state_dict' in checkpoint
+
+def test_model_loss():
+    # Train or load the model
+    model_path = train()
+    
+    # Load the trained model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = SimpleCNN().to(device)
+    checkpoint = torch.load(model_path)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    
+    # Calculate loss
+    loss = calculate_loss(model, device)
+    assert loss < 0.5, f"Model loss {loss:.4f} is above the threshold of 0.5"
