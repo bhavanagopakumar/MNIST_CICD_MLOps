@@ -181,7 +181,7 @@ def test_augmentation_range():
     
     augmented = train_transform(image)
     
-    # Check value ranges after normalization
+    # Check value ranges after normalization 
     assert augmented.min() >= -1.0
     assert augmented.max() <= 3.0
 
