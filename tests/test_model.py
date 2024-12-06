@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torchvision import datasets, transforms
 from model.network import SimpleCNN
-from train import train
+from train import train, get_transforms
 import numpy as np
 
 def count_parameters(model):
