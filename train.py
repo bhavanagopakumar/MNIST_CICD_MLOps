@@ -12,7 +12,7 @@ def get_transforms(is_train=True):
     """
     if is_train:
         return transforms.Compose([
-            transforms.RandomRotation(10),  # Rotate +/- 10 degrees
+            transforms.RandomRotation(10),  # Rotate +/- 10 degrees 
             transforms.RandomAffine(0, translate=(0.1, 0.1)),  # Random shift
             transforms.RandomAffine(0, scale=(0.9, 1.1)),  # Random scaling
             transforms.ToTensor(),
