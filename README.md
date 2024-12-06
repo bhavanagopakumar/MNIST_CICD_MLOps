@@ -1,6 +1,6 @@
 # MNIST CNN Training Pipeline
 
-![Build Status](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/model-training.yml/badge.svg)
+![Build Status](https://github.com/bhavanagopakumar/MNIST_CICD_MLOps/actions/workflows/model-training.yml/badge.svg)
 ![Model Accuracy](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/bhavanagopakumar/MNIST_CICD_MLOps/badges/accuracy.json)
 
 This project implements a complete Machine Learning pipeline for training a Convolutional Neural Network (CNN) for MNIST digit classification with automated CI/CD pipeline integration. What makes this project special is its focus on automated testing and continuous integration. 
